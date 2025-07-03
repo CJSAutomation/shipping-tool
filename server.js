@@ -15,53 +15,57 @@ app.post('/get-rates', async (req, res) => {
     const response = await fetch('https://api.goshippo.com/shipments/', {
       method: 'POST',
       headers: {
-        'Authorization': 'ShippoToken shippo_live_5a8c7761f47e64baa90e9d7894785bbe90cb57b5',
+        Authorization: 'ShippoToken shippo_live_5a8c7761f47e64baa90e9d7894785bbe90cb57b5',
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         address_from: {
-          name: "CJS Automation",
-          street1: "Newlands Grange",
-          city: "Rugeley",
-          zip: "WS15 3JD",
-          country: "GB"
+          name: 'CJS Automation',
+          street1: 'Newlands Grange',
+          city: 'Rugeley',
+          zip: 'WS15 3JD',
+          country: 'GB'
         },
         address_to: {
-          zip: zip,
-          country: zip.match(/^\d+$/) ? "US" : "GB"
+          zip,
+          country: zip.match(/^\d{5}$/) ? 'US' : 'GB'
         },
         parcels: [
           {
-            length: length,
-            width: width,
-            height: height,
-            distance_unit: "cm",
-            weight: weight,
-            mass_unit: "kg"
+            length,
+            width,
+            height,
+            distance_unit: 'cm',
+            weight,
+            mass_unit: 'kg'
           }
         ],
         insurance_amount: value,
-        insurance_currency: "GBP",
+        insurance_currency: 'GBP',
         async: false
       })
     });
 
     if (!response.ok) throw new Error(`Shippo error: ${response.statusText}`);
-    
-    const shipment = await response.json();
-    const shipmentId = shipment.object_id;
 
-    const ratesResponse = await fetch(`https://api.goshippo.com/shipments/${shipmentId}/rates/`, {
-      method: 'GET',
-      headers: {
-        'Authorization': 'ShippoToken shippo_live_5a8c7761f47e64baa90e9d7894785bbe90cb57b5',
-        'Content-Type': 'application/json'
-      }
-    });
+    const shipmentData = await response.json();
 
-    if (!ratesResponse.ok) throw new Error(`Shippo rates error: ${ratesResponse.statusText}`);
+    if (!shipmentData.rates || shipmentData.rates.length === 0) {
+      return res.status(200).json([]); // send empty array to avoid frontend crash
+    }
 
-    const data = await ratesResponse.json();
-    res.json(data.results);
-  } catch (error) {
-    console.error('Server erro
+    // Simplify the rate data before sending to frontend
+    const rates = shipmentData.rates.map(rate => ({
+      provider: rate.provider,
+      servicelevel_name: rate.servicelevel.name,
+      amount: rate.amount
+    }));
+
+    res.status(200).json(rates);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
