@@ -12,43 +12,25 @@ document.getElementById('shipping-form').addEventListener('submit', async functi
   resultBox.innerHTML = '<p>Fetching rates...</p>';
 
   try {
-    const response = await fetch('https://api.goshippo.com/rates/', {
+    const response = await fetch('https://cjs-shipping-tool.onrender.com/get-rates', {
       method: 'POST',
       headers: {
-        'Authorization': 'ShippoToken shippo_live_5a8c7761f47e64baa90e9d7894785bbe90cb57b5',
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        address_from: {
-          name: "CJS Automation",
-          street1: "Newlands Grange",
-          city: "Rugeley",
-          zip: "WS15 3JD",
-          country: "GB"
-        },
-        address_to: {
-          zip: zip,
-          country: zip.match(/^\d+$/) ? "US" : "GB" // Quick logic for demo (adjust based on actual country detection)
-        },
-        parcel: {
-          length: length,
-          width: width,
-          height: height,
-          distance_unit: "cm",
-          weight: weight,
-          mass_unit: "kg"
-        },
-        insurance_amount: value,
-        insurance_currency: "GBP",
-        async: false
+        zip,
+        weight,
+        length,
+        width,
+        height,
+        value
       })
     });
 
-    if (!response.ok) throw new Error(`Shippo error: ${response.statusText}`);
-
+    if (!response.ok) throw new Error(`Server error: ${response.statusText}`);
     const data = await response.json();
 
-    if (data.length === 0) {
+    if (!data || data.length === 0) {
       resultBox.innerHTML = '<p>No rates found.</p>';
       return;
     }
