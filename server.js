@@ -1,18 +1,18 @@
 const express = require('express');
 const cors = require('cors');
-const fetch = require('node-fetch');
+const bodyParser = require('body-parser');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-
 app.use(cors());
-app.use(express.json());
+app.use(bodyParser.json());
+
+const PORT = 3000;
 
 app.post('/get-rates', async (req, res) => {
-  const { zip, weight, length, width, height, value } = req.body;
-
   try {
-    const response = await fetch('https://api.goshippo.com/rates/', {
+    const { zip, weight, length, width, height, value } = req.body;
+
+    const response = await fetch('https://api.goshippo.com/shipments/', {
       method: 'POST',
       headers: {
         'Authorization': 'ShippoToken shippo_live_5a8c7761f47e64baa90e9d7894785bbe90cb57b5',
@@ -28,6 +28,40 @@ app.post('/get-rates', async (req, res) => {
         },
         address_to: {
           zip: zip,
-          country: /^\d+$/.test(zip) ? "US" : "GB"
+          country: zip.match(/^\d+$/) ? "US" : "GB"
         },
-        parcel: {
+        parcels: [
+          {
+            length: length,
+            width: width,
+            height: height,
+            distance_unit: "cm",
+            weight: weight,
+            mass_unit: "kg"
+          }
+        ],
+        insurance_amount: value,
+        insurance_currency: "GBP",
+        async: false
+      })
+    });
+
+    if (!response.ok) throw new Error(`Shippo error: ${response.statusText}`);
+    
+    const shipment = await response.json();
+    const shipmentId = shipment.object_id;
+
+    const ratesResponse = await fetch(`https://api.goshippo.com/shipments/${shipmentId}/rates/`, {
+      method: 'GET',
+      headers: {
+        'Authorization': 'ShippoToken shippo_live_5a8c7761f47e64baa90e9d7894785bbe90cb57b5',
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!ratesResponse.ok) throw new Error(`Shippo rates error: ${ratesResponse.statusText}`);
+
+    const data = await ratesResponse.json();
+    res.json(data.results);
+  } catch (error) {
+    console.error('Server erro
