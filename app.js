@@ -12,7 +12,7 @@ document.getElementById('shipping-form').addEventListener('submit', async functi
   resultBox.innerHTML = '<p>Fetching rates...</p>';
 
   try {
-    const response = await fetch('https://cjs-shipping-tool.onrender.com/get-rates', {
+    const response = await fetch('http://localhost:3000/get-rates', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -28,9 +28,10 @@ document.getElementById('shipping-form').addEventListener('submit', async functi
     });
 
     if (!response.ok) throw new Error(`Server error: ${response.statusText}`);
+
     const data = await response.json();
 
-    if (!data || data.length === 0) {
+    if (!data || !data.length) {
       resultBox.innerHTML = '<p>No rates found.</p>';
       return;
     }
